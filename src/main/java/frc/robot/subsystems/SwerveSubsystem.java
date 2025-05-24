@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.math.SwerveMath;
 import swervelib.parser.SwerveParser;
@@ -88,23 +89,17 @@ public Command zeroGyro(){
   public Command driveCommandF(DoubleSupplier translationX, DoubleSupplier translationY, DoubleSupplier angularRotationX)
   {
     return run(() -> {
-      // Make the robot move
-     
-      //for if robot wants to be slow or fast, you can change values if needed
-      double driveMultiplier = 5.0;
-      double turnMultiplier = 0.05; 
-      
-      Translation2d scaledInputs = new Translation2d(translationX.getAsDouble() * driveMultiplier,
-      translationY.getAsDouble() * driveMultiplier);
-      
+      Translation2d scaledInputs = SwerveMath.scaleTranslation(new Translation2d(translationX.getAsDouble(),
+      translationY.getAsDouble()), 0.8);
 
-          m_swerveDrive.drive(
-            scaledInputs,
-            angularRotationX.getAsDouble() * turnMultiplier * m_swerveDrive.getMaximumChassisAngularVelocity(),
-            true,
-            false
-        );
-    }); 
+      m_swerveDrive.driveFieldOriented(m_swerveDrive.swerveController.getTargetSpeeds(
+        scaledInputs.getX(),
+        scaledInputs.getY(),
+        m_swerveDrive.getOdometryHeading().getRadians() + angularRotationX.getAsDouble() * 1.7,
+        m_swerveDrive.getOdometryHeading().getRadians(),
+        m_swerveDrive.getMaximumChassisVelocity()));
+  });        
+}
 
    //OPTIONAL DRIVE COMMAND
       //   m_swerveDrive.drive(new Translation2d(translationX.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity(),
@@ -114,7 +109,7 @@ public Command zeroGyro(){
     //                     false);
     // });
   //}
-};
+
 
   @Override
 public void periodic() {
@@ -123,3 +118,4 @@ public void periodic() {
 }
 
 }
+
