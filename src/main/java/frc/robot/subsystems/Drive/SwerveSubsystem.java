@@ -1,14 +1,21 @@
-package frc.robot.subsystems;
+package frc.robot.subsystems.Drive;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.function.DoubleSupplier;
 
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -27,16 +34,16 @@ public class SwerveSubsystem extends SubsystemBase {
 
 
  public SwerveSubsystem() {
-    //create swerve directory
+    // create swerve directory
     File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
     //Put position on shuffleboard
     Shuffleboard.getTab("Drive").add("Field", field);
     //parse swerve directory; if wrong parameters are used, process will be output in the terminal
     try {
         m_swerveDrive = new SwerveParser(swerveJsonDirectory).createSwerveDrive(maximumSpeed);
+        m_swerveDrive.useExternalFeedbackSensor();
         SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
         m_swerveDrive.resetOdometry(new Pose2d(7, 3, new Rotation2d(0)));
-        m_swerveDrive.zeroGyro();
     } catch (IOException e) {
         File f = new File(swerveJsonDirectory, "swervedrive.json");
         e.printStackTrace();
@@ -44,12 +51,30 @@ public class SwerveSubsystem extends SubsystemBase {
         // Critical! Re-throw to avoid half-initialized objects
         throw new RuntimeException("Failed to load swerve drive config", e);
     }
+
 }
+
+
+
 public Command zeroGyro(){
   return run (() -> {
     m_swerveDrive.zeroGyro();
   });
 }
+
+
+public Command driveCommandF(DoubleSupplier translationX, DoubleSupplier translationY, DoubleSupplier angularRotationX)
+  {
+    return run(() -> {
+      // Make the robot move
+      m_swerveDrive.drive(SwerveMath.scaleTranslation(new Translation2d(
+                            translationX.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity(),
+                            translationY.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity()), 0.8),
+                        Math.pow(angularRotationX.getAsDouble(), 3) * m_swerveDrive.getMaximumChassisAngularVelocity(),
+                        true,
+                        false);
+    });
+  }
 
    
       /**
@@ -86,36 +111,16 @@ public Command zeroGyro(){
    * @param angularRotationX Rotation of the robot to set
    * @return Drive command.
    */
-  public Command driveCommandF(DoubleSupplier translationX, DoubleSupplier translationY, DoubleSupplier angularRotationX)
-  {
-    return run(() -> {
-      Translation2d scaledInputs = SwerveMath.scaleTranslation(new Translation2d(translationX.getAsDouble(),
-      translationY.getAsDouble()), 0.8);
 
-      m_swerveDrive.driveFieldOriented(m_swerveDrive.swerveController.getTargetSpeeds(
-        scaledInputs.getX(),
-        scaledInputs.getY(),
-        m_swerveDrive.getOdometryHeading().getRadians() + angularRotationX.getAsDouble() * 1.7,
-        m_swerveDrive.getOdometryHeading().getRadians(),
-        m_swerveDrive.getMaximumChassisVelocity()));
-  });        
-}
-
-   //OPTIONAL DRIVE COMMAND
-      //   m_swerveDrive.drive(new Translation2d(translationX.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity(),
-    //                                       translationY.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity()),
-    //                     angularRotationX.getAsDouble() * m_swerveDrive.getMaximumChassisAngularVelocity(),
-    //                     true,
-    //                     false);
-    // });
-  //}
 
 
   @Override
 public void periodic() {
-    Pose2d currentPose = m_swerveDrive.getPose(); // or odometry.getPoseMeters()
-    field.setRobotPose(currentPose);
+    // Pose2d currentPose = m_swerveDrive.getPose(); // or odometry.getPoseMeters()
+    // field.setRobotPose(currentPose);
+  }
+  
 }
 
-}
+
 
