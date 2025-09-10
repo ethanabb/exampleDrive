@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.function.DoubleSupplier;
 
+import com.google.flatbuffers.Constants;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
@@ -20,6 +21,7 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.DriveConstants;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.math.SwerveMath;
@@ -28,8 +30,7 @@ import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 
 public class SwerveSubsystem extends SubsystemBase {
-  private static double maximumSpeed = Units.feetToMeters(17.1);
-  private SwerveDrive m_swerveDrive;
+  private static SwerveDrive m_swerveDrive;
   private final Field2d field = new Field2d();
 
 
@@ -40,7 +41,7 @@ public class SwerveSubsystem extends SubsystemBase {
     Shuffleboard.getTab("Drive").add("Field", field);
     //parse swerve directory; if wrong parameters are used, process will be output in the terminal
     try {
-        m_swerveDrive = new SwerveParser(swerveJsonDirectory).createSwerveDrive(maximumSpeed);
+        m_swerveDrive = new SwerveParser(swerveJsonDirectory).createSwerveDrive(DriveConstants.kMaxSpeedMetersPerSecond);
         m_swerveDrive.useExternalFeedbackSensor();
         SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
         m_swerveDrive.resetOdometry(new Pose2d(7, 3, new Rotation2d(0)));
@@ -75,6 +76,20 @@ public Command driveCommandF(DoubleSupplier translationX, DoubleSupplier transla
                         false);
     });
   }
+
+  public Command driveCommandL(DoubleSupplier translationX, DoubleSupplier translationY, DoubleSupplier angularRotationX)
+  {
+    return run(() -> {
+      // Make the robot move
+      m_swerveDrive.drive(SwerveMath.scaleTranslation(new Translation2d(
+                            translationX.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity(),
+                            translationY.getAsDouble() * m_swerveDrive.getMaximumChassisVelocity()), 0.8),
+                        Math.pow(angularRotationX.getAsDouble(), 3) * m_swerveDrive.getMaximumChassisAngularVelocity(),
+                        false,
+                        false);
+    });
+  }
+
 
    
       /**
