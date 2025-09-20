@@ -48,7 +48,9 @@ public class RobotContainer {
           () -> MathUtil.applyDeadband(m_Vision.limelight_range_proportional(), .15),
           // () -> 0.0,
           () -> 0.0, 
-          () -> MathUtil.applyDeadband(m_Vision.limelight_aim_proportional(), .15))
+          // () -> 0.0
+          () -> MathUtil.applyDeadband(m_Vision.limelight_aim_proportional(), .15)
+          )
     );
         
     
