@@ -1,4 +1,4 @@
-package frc.robot;
+package frc.robot.subsystems.Drive;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -7,10 +7,13 @@ import frc.robot.LimelightHelpers;
 import frc.robot.Constants.DriveConstants;
 
 
+
 public class Vision extends SubsystemBase {
     
+    String limelightName;
 
     public Vision() {
+
     }
 
 
@@ -19,9 +22,10 @@ public class Vision extends SubsystemBase {
     // in this case, we are going to return an angular velocity that is proportional to the 
     // "tx" value from the Limelight.
     public double limelight_aim_proportional() {
+   
 
         // returns 0 if no target is found
-        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 0) {
+        if(LimelightHelpers.getLimelightNTTableEntry(limelightName, "tv").getDouble(0) == 0) {
             return 0.0;
         }
 
@@ -34,9 +38,9 @@ public class Vision extends SubsystemBase {
 
         // tx ranges from (-hfov/2) to (hfov/2) in degrees. If your target is on the rightmost edge of 
         // your limelight 3 feed, tx should return roughly 31 degrees.
-        double targetingAngularVelocity = Math.cbrt(LimelightHelpers.getTX("limelight-front")) * kP;
-        System.out.println("This is TX:" + LimelightHelpers.getTX("limelight-front"));
-        System.out.println("This is cbrt TX:" + Math.cbrt(LimelightHelpers.getTX("limelight-front")));
+        double targetingAngularVelocity = Math.cbrt(LimelightHelpers.getTX(limelightName)) * kP;
+        System.out.println("This is TX:" + LimelightHelpers.getTX(limelightName));
+        System.out.println("This is cbrt TX:" + Math.cbrt(LimelightHelpers.getTX(limelightName)));
         System.out.println("This is modified TX:" + targetingAngularVelocity);
 
         // convert to radians per second for our drive method
@@ -57,8 +61,9 @@ public class Vision extends SubsystemBase {
     // this works best if your Limelight's mount height and target mount height are different.
     // if your limelight and target are mounted at the same or similar heights, use "ta" (area) for target ranging rather than "ty"
     public double limelight_range_proportional() {
+    
         // returns 0 if no target is found
-        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 0) {
+        if(LimelightHelpers.getLimelightNTTableEntry(limelightName, "tv").getDouble(0) == 0) {
             return 0.0;
         }
 
@@ -68,7 +73,7 @@ public class Vision extends SubsystemBase {
         double desiredArea = 10.0;
 
         // error
-        double error = desiredArea - LimelightHelpers.getTA("limelight-front");
+        double error = desiredArea - LimelightHelpers.getTA(limelightName);
 
         // proportional control
         double targetingForwardSpeed = (error * kP);
@@ -83,11 +88,18 @@ public class Vision extends SubsystemBase {
 
     @Override
     public void periodic() {
-        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 1) {
-            LimelightHelpers.setLEDMode_ForceBlink("limelight-front");
+         // chooses which limelight to follow with
+        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 0) {
+            limelightName = "limelight-back";
+        } else if(LimelightHelpers.getLimelightNTTableEntry("limelight-back", "tv").getDouble(0) == 0){
+            limelightName = "limelight-front";
+        }
+    
+        if(LimelightHelpers.getLimelightNTTableEntry(limelightName, "tv").getDouble(0) == 1) {
+            LimelightHelpers.setLEDMode_ForceBlink(limelightName);
             // System.out.println("While");
         } else {
-            LimelightHelpers.setLEDMode_ForceOff("limelight-front");
+            LimelightHelpers.setLEDMode_ForceOff(limelightName);
         }
         
     }
