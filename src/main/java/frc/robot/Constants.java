@@ -24,6 +24,6 @@ public final class Constants {
   public static class DriveConstants {
     public static final double kMaxSpeedMetersPerSecond = Units.feetToMeters(17.1);
     public static final double kMaxAngularSpeedRadiansPerSecond = kMaxSpeedMetersPerSecond /0.449;
-    
+   
   }
 }

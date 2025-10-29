@@ -81,6 +81,10 @@ public class Vision extends SubsystemBase {
         // scale by drivetrain speed
         targetingForwardSpeed *= DriveConstants.kMaxSpeedMetersPerSecond;
 
+        if(limelightName == "limelight-back") {
+            targetingForwardSpeed *= -1;
+        }
+
         return targetingForwardSpeed;
     }
     
@@ -95,12 +99,19 @@ public class Vision extends SubsystemBase {
             limelightName = "limelight-front";
         }
     
-        if(LimelightHelpers.getLimelightNTTableEntry(limelightName, "tv").getDouble(0) == 1) {
-            LimelightHelpers.setLEDMode_ForceBlink(limelightName);
+        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 1) {
+            LimelightHelpers.setLEDMode_ForceBlink("limelight-front");
             // System.out.println("While");
         } else {
-            LimelightHelpers.setLEDMode_ForceOff(limelightName);
+            LimelightHelpers.setLEDMode_ForceOff("limelight-front");
         }
-        
+
+        if(LimelightHelpers.getLimelightNTTableEntry("limelight-back", "tv").getDouble(0) == 1) {
+            LimelightHelpers.setLEDMode_ForceBlink("limelight-back");
+            // System.out.println("While");
+        } else {
+            LimelightHelpers.setLEDMode_ForceOff("limelight-back");
+        }
+      
     }
 }
