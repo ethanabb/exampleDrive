@@ -41,19 +41,19 @@ import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 public class SwerveSubsystem extends SubsystemBase {
   private static SwerveDrive m_swerveDrive;
   //START OF POSE-ESTIMATOR Objects    
-  // private final SwerveDriveKinematics m_Kinematics;
+  private final SwerveDriveKinematics m_Kinematics;
 
-  // private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
 
-  // private final Pose2d m_initPose2d = new Pose2d();
+  private final Pose2d m_initPose2d = new Pose2d();
 
-  // private final SwerveDrivePoseEstimator m_poseEstimator; 
+  private final SwerveDrivePoseEstimator m_poseEstimator; 
 
-  // private final Field2d m_field = new Field2d();
+  private final Field2d m_field = new Field2d();
 
-  // private final ShuffleboardTab m_swerveTab = Shuffleboard.getTab("DriveSubsystem");
+  private final ShuffleboardTab m_swerveTab = Shuffleboard.getTab("DriveSubsystem");
 
-  // //END OF POSE-ESTIMATOR Objects
+  //END OF POSE-ESTIMATOR Objects
   
   
   // Constructor
@@ -72,17 +72,17 @@ public class SwerveSubsystem extends SubsystemBase {
       // Critical! Re-throw to avoid half-initialized objects
       throw new RuntimeException("Failed to load swerve drive config", e);
     }
-    // m_Kinematics = m_swerveDrive.kinematics;
-    // m_poseEstimator = new SwerveDrivePoseEstimator(m_Kinematics, m_gyro.getRotation2d(), getModulePositions(), m_initPose2d);
-    // m_swerveTab.add("Field", m_field)
-    //   .withWidget("Field2d"); // Explicitly set the widget type
+    m_Kinematics = m_swerveDrive.kinematics;
+    m_poseEstimator = new SwerveDrivePoseEstimator(m_Kinematics, m_gyro.getRotation2d(), getModulePositions(), m_initPose2d);
+    m_swerveTab.add("Field", m_field)
+      .withWidget("Field2d"); // Explicitly set the widget type
 
 
   }
   
   // Reset Pose2d Odeometry
   public void resetOdometry(Pose2d pose) {
-    // m_poseEstimator.resetPosition(m_gyro.getRotation2d(), getModulePositions(), pose);
+    m_poseEstimator.resetPosition(m_gyro.getRotation2d(), getModulePositions(), pose);
   }
   
   // Zero the acutal physical gyro on the bot
@@ -107,9 +107,9 @@ public class SwerveSubsystem extends SubsystemBase {
   }
   
   // Gets the pose of our Pose2d object
-  // public Pose2d getPose() {
-  //   return m_poseEstimator.getEstimatedPosition();
-  // }
+  public Pose2d getPose() {
+    return m_poseEstimator.getEstimatedPosition();
+  }
 
   
 
@@ -175,63 +175,63 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // // Updates Pose Estimator
-    // m_poseEstimator.update(m_gyro.getRotation2d(), getModulePositions());
+    // Updates Pose Estimator
+    m_poseEstimator.update(m_gyro.getRotation2d(), getModulePositions());
 
-    // // Update Pose on Field
-    // m_field.setRobotPose(getPose());
+    // Update Pose on Field
+    m_field.setRobotPose(getPose());
 
-    // // Limelight Stuff
-    // boolean useMegaTag2 = true; //set to false to use MegaTag1
-    // boolean doRejectUpdate = false;
-    // if(useMegaTag2 == false)
-    // {
-    //   LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+    // Limelight Stuff
+    boolean useMegaTag2 = true; //set to false to use MegaTag1
+    boolean doRejectUpdate = false;
+    if(useMegaTag2 == false)
+    {
+      LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
       
-    //   if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1)
-    //   {
-    //     if(mt1.rawFiducials[0].ambiguity > .7)
-    //     {
-    //       doRejectUpdate = true;
-    //     }
-    //     if(mt1.rawFiducials[0].distToCamera > 3)
-    //     {
-    //       doRejectUpdate = true;
-    //     }
-    //   }
-    //   if(mt1.tagCount == 0)
-    //   {
-    //     doRejectUpdate = true;
-    //   }
+      if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1)
+      {
+        if(mt1.rawFiducials[0].ambiguity > .7)
+        {
+          doRejectUpdate = true;
+        }
+        if(mt1.rawFiducials[0].distToCamera > 3)
+        {
+          doRejectUpdate = true;
+        }
+      }
+      if(mt1.tagCount == 0)
+      {
+        doRejectUpdate = true;
+      }
 
-    //   if(!doRejectUpdate)
-    //   {
-    //     m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5,.5,9999999));
-    //     m_poseEstimator.addVisionMeasurement(
-    //         mt1.pose,
-    //         mt1.timestampSeconds);
-    //   }
-    // }
-    // else if (useMegaTag2 == true)
-    // {
-    //   LimelightHelpers.SetRobotOrientation("limelight-four", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
-    //   LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
-    //   if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-    //   {
-    //     doRejectUpdate = true;
-    //   }
-    //   if(mt2.tagCount == 0)
-    //   {
-    //     doRejectUpdate = true;
-    //   }
-    //   if(!doRejectUpdate)
-    //   {
-    //     m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
-    //     m_poseEstimator.addVisionMeasurement(
-    //         mt2.pose,
-    //         mt2.timestampSeconds);
-    //   }
-    // }
+      if(!doRejectUpdate)
+      {
+        m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5,.5,9999999));
+        m_poseEstimator.addVisionMeasurement(
+            mt1.pose,
+            mt1.timestampSeconds);
+      }
+    }
+    else if (useMegaTag2 == true)
+    {
+      LimelightHelpers.SetRobotOrientation("limelight-four", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+      LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+      if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+      {
+        doRejectUpdate = true;
+      }
+      if(mt2.tagCount == 0)
+      {
+        doRejectUpdate = true;
+      }
+      if(!doRejectUpdate)
+      {
+        m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
+        m_poseEstimator.addVisionMeasurement(
+            mt2.pose,
+            mt2.timestampSeconds);
+      }
+    }
   }
 
 
