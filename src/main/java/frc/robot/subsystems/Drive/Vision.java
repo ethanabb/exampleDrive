@@ -10,7 +10,7 @@ import frc.robot.Constants.DriveConstants;
 
 public class Vision extends SubsystemBase {
     
-    String limelightName;
+    String limelightName = "limelight-four";
 
     public Vision() {
 
@@ -25,7 +25,7 @@ public class Vision extends SubsystemBase {
    
 
         // returns 0 if no target is found
-        if(LimelightHelpers.getLimelightNTTableEntry(limelightName, "tv").getDouble(0) == 0) {
+        if(LimelightHelpers.getLimelightNTTableEntry("limelight-four", "tv").getDouble(0) == 0) {
             return 0.0;
         }
 
@@ -38,9 +38,9 @@ public class Vision extends SubsystemBase {
 
         // tx ranges from (-hfov/2) to (hfov/2) in degrees. If your target is on the rightmost edge of 
         // your limelight 3 feed, tx should return roughly 31 degrees.
-        double targetingAngularVelocity = Math.cbrt(LimelightHelpers.getTX(limelightName)) * kP;
-        System.out.println("This is TX:" + LimelightHelpers.getTX(limelightName));
-        System.out.println("This is cbrt TX:" + Math.cbrt(LimelightHelpers.getTX(limelightName)));
+        double targetingAngularVelocity = Math.cbrt(LimelightHelpers.getTX("limelight-four")) * kP;
+        System.out.println("This is TX:" + LimelightHelpers.getTX("limelight-four"));
+        System.out.println("This is cbrt TX:" + Math.cbrt(LimelightHelpers.getTX("limelight-four")));
         System.out.println("This is modified TX:" + targetingAngularVelocity);
 
         // convert to radians per second for our drive method
@@ -63,7 +63,7 @@ public class Vision extends SubsystemBase {
     public double limelight_range_proportional() {
     
         // returns 0 if no target is found
-        if(LimelightHelpers.getLimelightNTTableEntry(limelightName, "tv").getDouble(0) == 0) {
+        if(LimelightHelpers.getLimelightNTTableEntry("limelight-four", "tv").getDouble(0) == 0) {
             return 0.0;
         }
 
@@ -73,7 +73,7 @@ public class Vision extends SubsystemBase {
         double desiredArea = 10.0;
 
         // error
-        double error = desiredArea - LimelightHelpers.getTA(limelightName);
+        double error = desiredArea - LimelightHelpers.getTA("limelight-four");
 
         // proportional control
         double targetingForwardSpeed = (error * kP);
@@ -81,9 +81,9 @@ public class Vision extends SubsystemBase {
         // scale by drivetrain speed
         targetingForwardSpeed *= DriveConstants.kMaxSpeedMetersPerSecond;
 
-        if(limelightName == "limelight-back") {
-            targetingForwardSpeed *= -1;
-        }
+        // if(limelightName == "limelight-back") {
+        //     targetingForwardSpeed *= -1;
+        // }
 
         return targetingForwardSpeed;
     }
@@ -92,26 +92,26 @@ public class Vision extends SubsystemBase {
 
     @Override
     public void periodic() {
-         // chooses which limelight to follow with
-        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 0) {
-            limelightName = "limelight-back";
-        } else if(LimelightHelpers.getLimelightNTTableEntry("limelight-back", "tv").getDouble(0) == 0){
-            limelightName = "limelight-front";
-        }
+        //  // chooses which limelight to follow with
+        // if(LimelightHelpers.getLimelightNTTableEntry("limelight-four", "tv").getDouble(0) == 0) {
+        //     limelightName = "limelight-back";
+        // } else if(LimelightHelpers.getLimelightNTTableEntry("limelight-back", "tv").getDouble(0) == 0){
+        //     limelightName = "limelight-four";
+        // }
     
-        if(LimelightHelpers.getLimelightNTTableEntry("limelight-front", "tv").getDouble(0) == 1) {
-            LimelightHelpers.setLEDMode_ForceBlink("limelight-front");
+        if(LimelightHelpers.getLimelightNTTableEntry("limelight-four", "tv").getDouble(0) == 1) {
+            LimelightHelpers.setLEDMode_ForceBlink("limelight-four");
             // System.out.println("While");
         } else {
-            LimelightHelpers.setLEDMode_ForceOff("limelight-front");
+            LimelightHelpers.setLEDMode_ForceOff("limelight-four");
         }
 
-        if(LimelightHelpers.getLimelightNTTableEntry("limelight-back", "tv").getDouble(0) == 1) {
-            LimelightHelpers.setLEDMode_ForceBlink("limelight-back");
-            // System.out.println("While");
-        } else {
-            LimelightHelpers.setLEDMode_ForceOff("limelight-back");
-        }
+        // if(LimelightHelpers.getLimelightNTTableEntry("limelight-back", "tv").getDouble(0) == 1) {
+        //     LimelightHelpers.setLEDMode_ForceBlink("limelight-back");
+        //     // System.out.println("While");
+        // } else {
+        //     LimelightHelpers.setLEDMode_ForceOff("limelight-back");
+        // }
       
     }
 }
