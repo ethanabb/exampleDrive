@@ -7,7 +7,9 @@ import java.util.function.DoubleSupplier;
 import com.google.flatbuffers.Constants;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.studica.frc.AHRS;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -19,7 +21,9 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
@@ -32,18 +36,18 @@ import frc.robot.LimelightHelpers;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.SwerveModule;
+import swervelib.imu.SwerveIMU;
 import swervelib.math.SwerveMath;
 import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
+import edu.wpi.first.networktables.GenericEntry;
 
 
 public class SwerveSubsystem extends SubsystemBase {
-  private static SwerveDrive m_swerveDrive;
+  private SwerveDrive m_swerveDrive;
   //START OF POSE-ESTIMATOR Objects    
   private final SwerveDriveKinematics m_Kinematics;
-
-  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
 
   private final Pose2d m_initPose2d = new Pose2d();
 
@@ -52,8 +56,16 @@ public class SwerveSubsystem extends SubsystemBase {
   private final Field2d m_field = new Field2d();
 
   private final ShuffleboardTab m_swerveTab = Shuffleboard.getTab("DriveSubsystem");
+  
+  private double previous;
 
   //END OF POSE-ESTIMATOR Objects
+
+  // Shuffleboard entries for live pose display
+  private final GenericEntry poseXEntry;
+  private final GenericEntry poseYEntry;
+  private final GenericEntry poseRotDegEntry;
+
   
   
   // Constructor
@@ -73,16 +85,25 @@ public class SwerveSubsystem extends SubsystemBase {
       throw new RuntimeException("Failed to load swerve drive config", e);
     }
     m_Kinematics = m_swerveDrive.kinematics;
-    m_poseEstimator = new SwerveDrivePoseEstimator(m_Kinematics, m_gyro.getRotation2d(), getModulePositions(), m_initPose2d);
+    previous = (m_swerveDrive.getYaw().getDegrees());
+
+    m_poseEstimator = new SwerveDrivePoseEstimator(m_Kinematics, m_swerveDrive.getYaw(), getModulePositions(), m_initPose2d);
     m_swerveTab.add("Field", m_field)
       .withWidget("Field2d"); // Explicitly set the widget type
+
+    // Numeric pose readouts on the same tab
+    poseXEntry = m_swerveTab.add("Pose X (m)", 0.0).getEntry();
+    poseYEntry = m_swerveTab.add("Pose Y (m)", 0.0).getEntry();
+    poseRotDegEntry = m_swerveTab.add("Pose Rot (deg)", 0.0).getEntry();
+
 
 
   }
   
+
   // Reset Pose2d Odeometry
   public void resetOdometry(Pose2d pose) {
-    m_poseEstimator.resetPosition(m_gyro.getRotation2d(), getModulePositions(), pose);
+    m_poseEstimator.resetPosition(m_swerveDrive.getYaw(), getModulePositions(), pose);
   }
   
   // Zero the acutal physical gyro on the bot
@@ -91,6 +112,13 @@ public class SwerveSubsystem extends SubsystemBase {
     m_swerveDrive.zeroGyro();
     });
   }
+
+
+  public Command resetOdometryCommand(Pose2d pose) {
+    return runOnce(() -> resetOdometry(pose));
+  }
+  
+  
 
   // Gets the positions by getting distance and rotation from the encoders.
   // Yagsl does this for you, this method is how you make it do that.
@@ -111,6 +139,18 @@ public class SwerveSubsystem extends SubsystemBase {
     return m_poseEstimator.getEstimatedPosition();
   }
 
+  public SwerveDriveKinematics getKinematics() {
+    return m_Kinematics;
+  }
+
+
+  public void setModuleStates(SwerveModuleState[] desiredStates) {
+    m_swerveDrive.setModuleStates(desiredStates, false);
+  }
+  
+  public void stop() {
+    m_swerveDrive.lockPose();
+  }
   
 
   // We love driving. It's pretty important.
@@ -173,20 +213,35 @@ public class SwerveSubsystem extends SubsystemBase {
   }
 
 
+
   @Override
   public void periodic() {
     // Updates Pose Estimator
-    m_poseEstimator.update(m_gyro.getRotation2d(), getModulePositions());
+    m_poseEstimator.update(m_swerveDrive.getYaw(), getModulePositions());
+
+    // Get Current pose once
+    Pose2d pose = getPose();
 
     // Update Pose on Field
-    m_field.setRobotPose(getPose());
+    m_field.setRobotPose(pose);
+
+    // Update Shuffleboard numeric entries
+    poseXEntry.setDouble(pose.getX());
+    poseYEntry.setDouble(pose.getY());
+    poseRotDegEntry.setDouble(pose.getRotation().getDegrees());
 
     // Limelight Stuff
     boolean useMegaTag2 = true; //set to false to use MegaTag1
     boolean doRejectUpdate = false;
     if(useMegaTag2 == false)
     {
-      LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+      LimelightHelpers.PoseEstimate mt1 = 
+      LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+
+      if(mt1 == null) {
+        previous = m_swerveDrive.getYaw().getDegrees();
+        return;
+      }
       
       if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1)
       {
@@ -214,9 +269,37 @@ public class SwerveSubsystem extends SubsystemBase {
     }
     else if (useMegaTag2 == true)
     {
-      LimelightHelpers.SetRobotOrientation("limelight-four", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
-      LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
-      if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+      LimelightHelpers.SetRobotOrientation(
+        "limelight-four", 
+        m_swerveDrive.getYaw().getDegrees(), 
+        0, 
+        0, 
+        0, 
+        0, 
+        0
+        );
+      LimelightHelpers.PoseEstimate mt2 = 
+      LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+
+      //If no valid pose, bail out immediately
+      if(mt2 == null) {
+        previous = m_swerveDrive.getYaw().getDegrees();
+        return;
+      }
+
+      double currentYawDeg = m_swerveDrive.getYaw().getDegrees();
+
+      // Compute minimal angle difference, handling wrap at ±180°
+      double deltaYawDeg = MathUtil.inputModulus(
+      currentYawDeg - previous,   // current - previous
+      -180.0,
+      180.0
+      );
+
+      // Approximate angular velocity (deg/s) assuming ~20 ms loop
+      double angularVelDegPerSec = deltaYawDeg / 0.02;
+      
+      if(Math.abs(angularVelDegPerSec) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
       {
         doRejectUpdate = true;
       }
@@ -232,6 +315,8 @@ public class SwerveSubsystem extends SubsystemBase {
             mt2.timestampSeconds);
       }
     }
+    previous = (m_swerveDrive.getYaw().getDegrees());
+
   }
 
 

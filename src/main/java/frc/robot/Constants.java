@@ -24,6 +24,14 @@ public final class Constants {
   public static class DriveConstants {
     public static final double kMaxSpeedMetersPerSecond = Units.feetToMeters(17.1);
     public static final double kMaxAngularSpeedRadiansPerSecond = kMaxSpeedMetersPerSecond /0.449;
-   
+    public static final double kMaxAccelerationMetersPerSecondSquared = 3.0;
+    public static final double kMaxAngularAccelerationRadiansPerSecond = 3.5;
+
+    // PID Gains for X and Y position control (TUNING REQUIRED)
+    public static final double kPXController = 0.5; 
+    public static final double kPYController = 0.5; 
+    
+    // Profiled PID Gains for Theta (Rotation) control (TUNING REQUIRED)
+    public static final double kPThetaController = 1.0;
   }
 }
